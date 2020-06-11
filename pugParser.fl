@@ -1,0 +1,24 @@
+%{
+#include "y.tab.h"
+#include <math.h>
+#include "nodo.h"
+void yyerror(char* s);
+%}
+%option noyywrap
+
+%x TEXT
+
+%%
+
+[a-zA-Z]*               {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
+\.[a-zA-Z]*             {yylval.s = strdup(yytext+1); BEGIN TEXT;return CLASS;}
+#[a-zA-Z]*              {yylval.s = strdup(yytext+1); BEGIN TEXT;return ID;}
+^[ ]*                   {yylval.s = strdup(yytext); return TABS;}
+<TEXT>\.[a-zA-Z]*       {yylval.s = strdup(yytext+1); return CLASS;}
+<TEXT>#[a-zA-Z]*        {yylval.s = strdup(yytext+1); return ID;} 
+<TEXT>[ ]+[^\n]*        {yylval.s=strdup(yytext); BEGIN INITIAL; return TXT;}
+<TEXT>[\n]*             {BEGIN INITIAL;}
+[\n]*                   {;}
+                    
+
+%%
