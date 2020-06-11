@@ -10,13 +10,16 @@ int id=0;
 char * spaces [2048];
 char * conteudo [2048];
 char * names [2048];
+char * atribs [2048];
+char * auxAtribs [2048];
 char aux [2048];
 int inicio = 1;
+int ia=0;
 
 int writeSons(int i)
 {
   char * delim = strdup(" ");
-  printf("\n%s<%s>%s",spaces[i],names[i],conteudo[i]);
+  printf("\n%s<%s%s>%s",spaces[i],names[i],atribs[i],conteudo[i]);
   int j=i+1;
   int found=0;
   for (;j<=id;j++)
@@ -44,8 +47,8 @@ int writeSons(int i)
         char * s;
 	  }
 
-%token <s> STR TABS TXT ID CLASS
-%type <s> Etiqueta Conteudo PrimeiraEtiqueta Nome Id Classe Extra
+%token <s> STR TABS TXT ID CLASS ATRIB
+%type <s> Etiqueta Conteudo PrimeiraEtiqueta Nome Id Classe Extra Atribuicoes
 
 %%
 Pug:
@@ -60,8 +63,27 @@ Etiquetas:PrimeiraEtiqueta Outros {
   }
 Outros:  
       |  Etiqueta Outros 
-Etiqueta:TABS Nome Conteudo  { id++;spaces[id]=strdup($1);conteudo[id]=strdup($3);names[id]=strdup($2);}
-PrimeiraEtiqueta:Nome Conteudo {id++;conteudo[id]=strdup($2);spaces[id]="";names[id]=strdup($1);}
+Etiqueta:TABS Nome Atribuicoes Conteudo  { id++;spaces[id]=strdup($1);conteudo[id]=strdup($4);names[id]=strdup($2);atribs[id]=strdup($3);}
+PrimeiraEtiqueta:Nome Atribuicoes Conteudo {id++;conteudo[id]=strdup($3);spaces[id]="";names[id]=strdup($1);atribs[id]=strdup($2);}
+Atribuicoes: Atributos {sprintf(aux,"");
+                        for (int i=0;i<ia;i++)
+                        {
+                          if (i==0)
+                          {
+                            strcat(aux,strdup(" "));
+                          }
+                          strcat(aux,auxAtribs[i]);
+                          if (i+1<ia)
+                          {
+                            strcat(aux,strdup(" "));
+                          }
+                        }
+                        $$=strdup(aux);
+                        ia=0;  
+                       }
+Atributos : ATRIB Atributos {auxAtribs[ia++]=strdup($1);}
+          | 
+          ;
 Conteudo:TXT {$$=strdup($1);}
         |    {$$=strdup("");}
         ;

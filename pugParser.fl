@@ -3,21 +3,30 @@
 #include <math.h>
 #include "nodo.h"
 void yyerror(char* s);
+char * variavel;
+char * valor;
+char aux [1024];
 %}
 %option noyywrap
 
-%x TEXT
+%x TEXT GA GV GM
 
 %%
 
 [a-zA-Z]*               {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
 \.[a-zA-Z]*             {yylval.s = strdup(yytext+1); BEGIN TEXT;return CLASS;}
 #[a-zA-Z]*              {yylval.s = strdup(yytext+1); BEGIN TEXT;return ID;}
-^[ ]*                   {yylval.s = strdup(yytext); return TABS;}
+^[ ]*/[a-zA-Z]*         {yylval.s = strdup(yytext); return TABS;}
 <TEXT>\.[a-zA-Z]*       {yylval.s = strdup(yytext+1); return CLASS;}
-<TEXT>#[a-zA-Z]*        {yylval.s = strdup(yytext+1); return ID;} 
+<TEXT>#[a-zA-Z]*        {yylval.s = strdup(yytext+1); return ID;}
+<TEXT>\(                {BEGIN GA;} 
 <TEXT>[ ]+[^\n]*        {yylval.s=strdup(yytext); BEGIN INITIAL; return TXT;}
 <TEXT>[\n]*             {BEGIN INITIAL;}
+<GA>[^\=]+\=            {variavel=strdup(yytext);BEGIN GV;}
+<GV>[\'\"][^\'\"]*[\'\"] {yytext[0]=yytext[strlen(yytext)-1]='\"';
+                          valor=strdup(yytext);sprintf(aux,"%s%s",variavel,valor);yylval.s=strdup(aux);BEGIN GM;return ATRIB;}
+<GM>\)                   {BEGIN TEXT;}
+<GM>[\n, ]+              {BEGIN GA;}                           
 [\n]*                   {;}
                     
 
