@@ -13,12 +13,14 @@ char aux [1024];
 
 %%
 
-[a-zA-Z]*               {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
-\.[a-zA-Z]*             {yylval.s = strdup(yytext+1); BEGIN TEXT;return CLASS;}
-#[a-zA-Z]*              {yylval.s = strdup(yytext+1); BEGIN TEXT;return ID;}
-^[ ]*/[a-zA-Z]*         {yylval.s = strdup(yytext); return TABS;}
-<TEXT>\.[a-zA-Z]*       {yylval.s = strdup(yytext+1); return CLASS;}
-<TEXT>#[a-zA-Z]*        {yylval.s = strdup(yytext+1); return ID;}
+[a-zA-Z]+([0-9]|_)*               {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
+\.[a-zA-Z]+             {yylval.s = strdup(yytext+1); BEGIN TEXT;return CLASS;}
+#[a-zA-Z]+              {yylval.s = strdup(yytext+1); BEGIN TEXT;return ID;}
+^[ ]+/[a-zA-Z]+         {yylval.s = strdup(yytext); return TABS;}
+^[\t]+/[a-zA-Z]+         {yylval.s = strdup(yytext); return TABS;}
+<TEXT>\.[a-zA-Z]+       {yylval.s = strdup(yytext+1); return CLASS;}
+<TEXT>#[a-zA-Z]+        {yylval.s = strdup(yytext+1); return ID;}
+<TEXT>\.                {yylval.s = strdup(yytext); return PONTO;}
 <TEXT>\(                {BEGIN GA;} 
 <TEXT>[ ]+[^\n]*        {yylval.s=strdup(yytext); BEGIN INITIAL; return TXT;}
 <TEXT>[\n]*             {BEGIN INITIAL;}

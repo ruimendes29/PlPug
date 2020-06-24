@@ -12,6 +12,7 @@ char * conteudo [2048];
 char * names [2048];
 char * atribs [2048];
 char * auxAtribs [2048];
+int comPonto[2048] = {0};
 char aux [2048];
 int inicio = 1;
 int ia=0;
@@ -24,13 +25,19 @@ int writeSons(int i)
   int found=0;
   for (;j<=id;j++)
   {
-    if (strlen(spaces[j])>strlen(spaces[i]))
+    if (strlen(spaces[j])>strlen(spaces[i])&&comPonto[i]==0)
       j = writeSons(j)-1;
-    else {
-        char *ptr = strtok(names[i], delim);  
-      printf("\n%s</%s>",spaces[i],ptr);
-      found=1;
-      break;
+    else if (strlen(spaces[j])>strlen(spaces[i])&&comPonto[i]==1)
+         {
+           printf("\n%s%s%s%s",spaces[j],names[j],atribs[j],conteudo[j]);
+         }
+         else {
+         // Talvez melhor depois mudar esta parte para que nao tenhamos de estar a separar o nome outra vez
+         // Fazemos logo a separação no parser
+         char *ptr = strtok(names[i], delim);  
+         printf("\n%s</%s>",spaces[i],ptr);
+         found=1;
+         break;
     }  
   }
     char *ptr = strtok(names[i], delim);
@@ -47,7 +54,7 @@ int writeSons(int i)
         char * s;
 	  }
 
-%token <s> STR TABS TXT ID CLASS ATRIB
+%token <s> STR TABS TXT ID CLASS ATRIB PONTO
 %type <s> Etiqueta Conteudo PrimeiraEtiqueta Nome Id Classe Extra Atribuicoes
 
 %%
@@ -63,8 +70,8 @@ Etiquetas:PrimeiraEtiqueta Outros {
   }
 Outros:  
       |  Etiqueta Outros 
-Etiqueta:TABS Nome Atribuicoes Conteudo  { id++;spaces[id]=strdup($1);conteudo[id]=strdup($4);names[id]=strdup($2);atribs[id]=strdup($3);}
-PrimeiraEtiqueta:Nome Atribuicoes Conteudo {id++;conteudo[id]=strdup($3);spaces[id]="";names[id]=strdup($1);atribs[id]=strdup($2);}
+Etiqueta:TABS Nome Atribuicoes Ponto Conteudo  { id++;spaces[id]=strdup($1);conteudo[id]=strdup($5);names[id]=strdup($2);atribs[id]=strdup($3);}
+PrimeiraEtiqueta:Nome Atribuicoes Ponto Conteudo {id++;conteudo[id]=strdup($4);spaces[id]="";names[id]=strdup($1);atribs[id]=strdup($2);}
 Atribuicoes: Atributos {sprintf(aux,"");
                         for (int i=0;i<ia;i++)
                         {
@@ -81,6 +88,9 @@ Atribuicoes: Atributos {sprintf(aux,"");
                         $$=strdup(aux);
                         ia=0;  
                        }
+Ponto: PONTO {comPonto[id+1]=1;}
+     |
+     ;                       
 Atributos : ATRIB Atributos {auxAtribs[ia++]=strdup($1);}
           | 
           ;
