@@ -9,26 +9,25 @@ char aux [1024];
 %}
 %option noyywrap
 
-%x TEXT GA GV GM
+%x TEXT GA GV GM 
 
 %%
-
-[a-zA-Z]+([0-9]|_)*               {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
+([a-zA-Z]+([0-9]|_)*)+  {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
 \.[a-zA-Z]+             {yylval.s = strdup(yytext+1); BEGIN TEXT;return CLASS;}
 #[a-zA-Z]+              {yylval.s = strdup(yytext+1); BEGIN TEXT;return ID;}
-^[ ]+/[a-zA-Z]+         {yylval.s = strdup(yytext); return TABS;}
-^[\t]+/[a-zA-Z]+         {yylval.s = strdup(yytext); return TABS;}
+^[ ]+        {yylval.s = strdup(yytext); return TABS;}
+^[\t]+       {yylval.s = strdup(yytext); return TABS;}
 <TEXT>\.[a-zA-Z]+       {yylval.s = strdup(yytext+1); return CLASS;}
 <TEXT>#[a-zA-Z]+        {yylval.s = strdup(yytext+1); return ID;}
 <TEXT>\.                {yylval.s = strdup(yytext); return PONTO;}
 <TEXT>\(                {BEGIN GA;} 
 <TEXT>[ ]+[^\n]*        {yylval.s=strdup(yytext); BEGIN INITIAL; return TXT;}
-<TEXT>[\n]*             {BEGIN INITIAL;}
+<TEXT>[\n]+             {BEGIN INITIAL;}
 <GA>[^\=]+\=            {variavel=strdup(yytext);BEGIN GV;}
 <GV>[\'\"][^\'\"]*[\'\"] {yytext[0]=yytext[strlen(yytext)-1]='\"';
                           valor=strdup(yytext);sprintf(aux,"%s%s",variavel,valor);yylval.s=strdup(aux);BEGIN GM;return ATRIB;}
 <GM>\)                   {BEGIN TEXT;}
-<GM>[\n, ]+              {BEGIN GA;}                           
+<GM>[\n, ]+              {BEGIN GA;}                      
 [\n]*                   {;}
                     
 

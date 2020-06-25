@@ -4,7 +4,7 @@ a=pugParser
 $a : $a.y $a.fl
 	flex $a.fl
 	yacc -d $a.y
-	cc -o $a y.tab.c lex.yy.c nodo.h -lm
+	cc -o $a y.tab.c lex.yy.c nodo.c -lm
 
 teste: $a exemplo
 	paste -d: exemplo <($a  < exemplo ) | column -t -s:
