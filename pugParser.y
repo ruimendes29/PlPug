@@ -9,54 +9,90 @@
 int id=0;
 char * atribs [2048];
 char * auxAtribs [2048];
-int comPonto[2048] = {0};
 char aux [2048];
 int inicio = 1;
-char ** holderForAtribs;
+char ** holderForVariables;
+char ** holderForValues;
 Etiqueta ** etiquetas;
 int ia=0;
 int ig=0;
-int newGroup=0;
 Etiquetas* grupos[2048];
 int numEtiquetas=0;
+BD * mybd=NULL;
+char * tipoAux;
 
-int writeSons(int i,int ixg,Etiqueta * * ets)
+void printAtributos(int i,Etiqueta ** ets)
+{
+  char ** type= malloc(sizeof(char *));
+for(int a=0;a<ets[i]->atributos->size;a++)
+    {
+      if (ets[i]->atributos->values[a][0]=='\"')
+        printf(" %s=%s",ets[i]->atributos->variables[a],ets[i]->atributos->values[a]);
+      else
+      {
+          char * value = getValorAndType(mybd,ets[i]->atributos->values[a],type);
+          if (!strcmp(*type,strdup("string")))
+          {
+            printf(" %s=%s",ets[i]->atributos->variables[a],strdup(value));
+          }
+      }
+    }
+}
+void writeNormalLine(int i,Etiqueta ** ets)
+{
+
+}
+
+int writeSons(int i,int idxg,int ixg,Etiqueta * * ets)
 {
   int j;
-  if (i!=ixg)
+  j=i-1;
+  if (!strcmp(ets[i]->nome,strdup("if")))
   {
-    putchar('\n');
+      char ** type= malloc(sizeof(char *));
+      int * value = getValorAndType(mybd,ets[i]->condicao,type);
+      if (value!=NULL && *value==1)
+      {
+        j=writeSons(j,idxg,ixg,ets);
+      }
+      else
+      {
+        for(;j>=0;j--)
+        {
+          if (ets[j]->identacao <= ets[i]->identacao) break;
+        }
+        if (!strcmp(ets[j]->nome,strdup("else")))
+        {
+          j--;
+        }
+      }
   }
-    printf("%s<%s%s%s",ets[i]->espacos,ets[i]->nome,ets[i]->id,
-                            ets[i]->classe);   
-    for(int a=0;a<ets[i]->atributos->size;a++)
+  else {
+  j=i-1;
+  if(i!=ixg || idxg!=ig-1)
+    putchar('\n');
+    printf("%s<%s",ets[i]->espacos,ets[i]->nome);  
+    if (strcmp(ets[i]->id,""))
     {
-      printf(" %s",ets[i]->atributos->atribs[a]);
+      printf(" id=\"%s\"",ets[i]->id);
     }
+    if (strcmp(ets[i]->classe,""))
+    {
+      printf(" class=\"%s\"",ets[i]->classe);
+    }
+    printAtributos(i,ets);
     printf(">%s",ets[i]->conteudo);
-    j=i-1;
     for (;j>=0;j--)
     {
-    if (ets[j]->identacao > ets[i]->identacao && ets[i]->hasPoint==0)
-    {
-              j = writeSons(j,ixg,ets)+1;
+      if (ets[j]->identacao > ets[i]->identacao)
+      {
+              j = writeSons(j,idxg,ixg,ets)+1;
+      }
+      else break;
     }
-    else if (ets[j]->identacao > ets[i]->identacao && ets[i]->hasPoint==1)
-         {
-           printf("\n%s%s",ets[j]->espacos,ets[j]->nome);
-           for(int a=0;a<ets[j]->atributos->size;a++)
-           {
-              printf(" %s",ets[j]->atributos->atribs[a]);
-           }
-           printf("%s",ets[j]->conteudo);
-         }
-         else { 
-         break;
-        }  
-  }
-  printf("</%s>",ets[i]->nome);
-  if(i==ixg || i==0)
+  if(i==ixg)
     putchar('\n');
+  printf("</%s>",ets[i]->nome);}
   return j;
 }
   
@@ -73,8 +109,9 @@ int writeSons(int i,int ixg,Etiqueta * * ets)
         void * e;
 	  }
 
-%token <s> STR TABS TXT ID CLASS ATRIB PONTO IF BOOL
-%type <s> Conteudo Nome Id Classe Espacos
+%token<i> BOOL
+%token <s> STR TABS TXT ID CLASS ATRIB PONTO NEW VAR SVALUE IF COND
+%type <s> Conteudo Nome Id Classe Espacos Condicao
 %type <i> Ponto
 %type <e> Etiqueta SubEtiqueta Etiquetas Atribuicoes
 
@@ -85,15 +122,32 @@ ToPrint: Pug {
    {
      grupo=grupos[i];
      for (int j=grupo->size-1;j>=0;j--)
-        j=writeSons(j,grupo->size-1,grupo->tags)+1;
+        j=writeSons(j,i,grupo->size-1,grupo->tags)+1;
    }
      }
 Pug:                
    | Etiquetas Pug { 
      Etiquetas * aux = (Etiquetas *) $1;
      grupos[ig++]=aux;
-   }
+      }
+   | NEW VAR SVALUE Pug {if (mybd==NULL)
+                        {
+                          mybd=malloc(sizeof(struct mybd));
+                        }
+                          char * value = $3;
+                          addValor(mybd,strdup($2),value,strdup("string"));
+                        }
+   | NEW VAR BOOL Pug   {
+                        if (mybd==NULL)
+                        {
+                          mybd=malloc(sizeof(struct mybd));
+                        }
+                        int * a = malloc(sizeof(int));
+                               *a = $3;
+                               addValor(mybd,strdup($2),a,strdup("bool"));
+                        }                                  
    ;
+
 Etiquetas:Etiqueta Outros{
   Etiquetas * ets = malloc(sizeof(struct etiquetas));
   Etiqueta ** thisEtiq=etiquetas;
@@ -108,7 +162,7 @@ Etiquetas:Etiqueta Outros{
 Outros:  
       |  SubEtiqueta Outros {etiquetas[id++]=$1;}
       ;
-Etiqueta:Espacos Nome Id Classe Atribuicoes Ponto Conteudo  {
+Etiqueta:Espacos Nome Id Classe Atribuicoes Ponto Conteudo Condicao{
                                                            if (etiquetas==NULL)
                                                            {
                                                              etiquetas=malloc(sizeof(struct etiqueta *)*2048);
@@ -121,11 +175,12 @@ Etiqueta:Espacos Nome Id Classe Atribuicoes Ponto Conteudo  {
                                                            eti->atributos=$5;
                                                            eti->hasPoint=$6;
                                                            eti->conteudo=strdup($7);
+                                                           eti->condicao=strdup($8);
                                                            eti->identacao=strlen(eti->espacos);
                                                            $$=eti;
-                                                           }
+                                                           }                                              
                                                            ;
-SubEtiqueta:TABS Nome Id Classe Atribuicoes Ponto Conteudo  {
+SubEtiqueta:TABS Nome Id Classe Atribuicoes Ponto Conteudo Condicao{
                                                            if (etiquetas==NULL)
                                                            {
                                                              etiquetas=malloc(sizeof(struct etiqueta *)*2048);
@@ -138,32 +193,49 @@ SubEtiqueta:TABS Nome Id Classe Atribuicoes Ponto Conteudo  {
                                                            eti->atributos=$5;
                                                            eti->hasPoint=$6;
                                                            eti->conteudo=strdup($7);
+                                                           eti->condicao=strdup($8);
                                                            eti->identacao=strlen(eti->espacos);
                                                            $$=eti;
                                                            }
                                                            ;                                                           
-Atribuicoes: ATRIB Atributos {char ** atributos;
-                              if (holderForAtribs==NULL) holderForAtribs=malloc(sizeof(char *)*2048);
-                              holderForAtribs[ia++]=strdup($1);
-                              atributos=holderForAtribs;
+Atribuicoes: VAR ATRIB Atributos {char ** variables;
+                                  char ** values;
+                              if (holderForVariables==NULL)
+                              {
+                                  holderForVariables=malloc(sizeof(char *)*2048);
+                                  holderForValues=malloc(sizeof(char *)*2048);
+                              } 
+                              sprintf(aux,"%s=%s",strdup($1),strdup($2));
+                              holderForVariables[ia]=strdup($1);
+                              holderForValues[ia++]=strdup($2);
+                              variables=holderForVariables;
+                              values=holderForValues;
                               Atributos * atribs = malloc(sizeof(struct atributos));
-                              atribs->atribs=atributos;
+                              atribs->variables=variables;
+                              atribs->values=values;
                               atribs->size=ia;
                               $$=atribs;
                               ia=0;
-                              holderForAtribs=NULL;}
+                              holderForVariables=NULL;}
            | {Atributos * atribs = malloc(sizeof(struct atributos));
-                              atribs->atribs=NULL;
+                              atribs->variables=atribs->values=NULL;
                               atribs->size=0;
                               $$=atribs;}
            ;
-Espacos:TABS {$$=$1;}
+Espacos:TABS {$$=strdup($1);}
        |  {$$="";}
        ;                       
 Ponto: PONTO {$$=1;}
      |  {$$=0;}
      ;                       
-Atributos : ATRIB Atributos {if (holderForAtribs==NULL) holderForAtribs=malloc(sizeof(char *)*2048); holderForAtribs[ia++]=strdup($1);}
+Atributos : VAR ATRIB Atributos {if (holderForVariables==NULL)
+                              {
+                                  holderForVariables=malloc(sizeof(char *)*2048);
+                                  holderForValues=malloc(sizeof(char *)*2048);
+                              } 
+                              sprintf(aux,"%s=%s",strdup($1),strdup($2));
+                              holderForVariables[ia]=strdup($1);
+                              holderForValues[ia++]=strdup($2);}
           | 
           ;
 Conteudo:TXT {$$=strdup($1);}
@@ -172,12 +244,15 @@ Conteudo:TXT {$$=strdup($1);}
 Nome: STR {$$=$1;}
     | {$$="div";}
     ;  
-Id : ID {sprintf(aux," id=\"%s\"",$1);$$=strdup(aux);}
+Id : ID {$$=strdup($1);}
    | {$$="";}
    ;
-Classe : CLASS {sprintf(aux," class=\"%s\"",$1);$$=strdup(aux);}   
+Classe : CLASS {$$=strdup($1);}   
        | {$$="";}
-       ;           
+       ;
+Condicao : COND {$$=strdup($1);}
+         | {$$="";}
+         ;                  
 %%
 
 int main(){

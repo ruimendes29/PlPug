@@ -3,32 +3,59 @@
 #include <math.h>
 #include "nodo.h"
 void yyerror(char* s);
-char * variavel;
-char * valor;
+int compare;
+char * conteudo=NULL;
 char aux [1024];
 %}
 %option noyywrap
 
-%x TEXT GA GV GM 
+%x TEXT GA GV GM GVARIABLE GVALUE VALUE GCOND CONDIT GPONTO GETLINE RTABS
 
 %%
+if                      {yylval.s = strdup(yytext);BEGIN GCOND;return STR;}
 ([a-zA-Z]+([0-9]|_)*)+  {yylval.s = strdup(yytext);BEGIN TEXT;return STR;}
 \.[a-zA-Z]+             {yylval.s = strdup(yytext+1); BEGIN TEXT;return CLASS;}
 #[a-zA-Z]+              {yylval.s = strdup(yytext+1); BEGIN TEXT;return ID;}
-^[ ]+        {yylval.s = strdup(yytext); return TABS;}
+-[ ]*                   {BEGIN GVARIABLE;return NEW;}
+^[ ]+        {yylval.s = strdup(yytext);compare=strlen(yytext); return TABS;}
 ^[\t]+       {yylval.s = strdup(yytext); return TABS;}
 <TEXT>\.[a-zA-Z]+       {yylval.s = strdup(yytext+1); return CLASS;}
 <TEXT>#[a-zA-Z]+        {yylval.s = strdup(yytext+1); return ID;}
-<TEXT>\.                {yylval.s = strdup(yytext); return PONTO;}
+<TEXT>\.$                {yylval.s = strdup(yytext);BEGIN GPONTO; return PONTO;}
 <TEXT>\(                {BEGIN GA;} 
 <TEXT>[ ]+[^\n]*        {yylval.s=strdup(yytext); BEGIN INITIAL; return TXT;}
 <TEXT>[\n]+             {BEGIN INITIAL;}
-<GA>[^\=]+\=            {variavel=strdup(yytext);BEGIN GV;}
-<GV>[\'\"][^\'\"]*[\'\"] {yytext[0]=yytext[strlen(yytext)-1]='\"';
-                          valor=strdup(yytext);sprintf(aux,"%s%s",variavel,valor);yylval.s=strdup(aux);BEGIN GM;return ATRIB;}
+<GA>[^\=]+/\=            {yylval.s=strdup(yytext);BEGIN GV;return VAR;}
+<GV>\=[\'\"][^\'\"]*[\'\"] {yytext[1]=yytext[strlen(yytext)-1]='\"';
+                          yylval.s=strdup(yytext+1);BEGIN GM;return ATRIB;}
+<GV>\=[a-z][a-zA-Z0-9_]*   {yylval.s=strdup(yytext+1);BEGIN GM;return ATRIB;}
 <GM>\)                   {BEGIN TEXT;}
-<GM>[\n, ]+              {BEGIN GA;}                      
+<GM>[\n, ]+              {BEGIN GA;}
+<GVARIABLE>[a-z][a-zA-Z0-9_]*/[ ]*\= {yylval.s = strdup(yytext);BEGIN GVALUE;return VAR;}
+<GVALUE>[ ]*/\=          {BEGIN VALUE;}
+<VALUE>\=\"[^\"]*\"       {yylval.s=strdup(yytext+1);BEGIN INITIAL;return SVALUE;}
+<VALUE>\=true             {yylval.i=1;BEGIN INITIAL; return BOOL;}
+<VALUE>\=false            {yylval.i=0;BEGIN INITIAL; return BOOL;}
+<VALUE>\=[ ]*             {yylval.i=0;BEGIN INITIAL; return BOOL;}
+<GCOND>[ ]+/[a-z][a-zA-Z0-9_]*[ ]*\n {BEGIN CONDIT;}
+<CONDIT>[a-z][a-zA-Z0-9_]* {yylval.s=strdup(yytext);BEGIN INITIAL;return COND;}                                   
 [\n]*                   {;}
+[ ]* {;}
+<GPONTO>\n[ ]*/[ ]  {int s = strlen(yytext);if (s>compare) 
+                                            {
+                                                int c;
+                                                c = (conteudo==NULL)?0:strlen(conteudo);
+                                                int newSize=c+strlen(yytext)+2;
+                                                conteudo=realloc(conteudo,newSize);strcat(conteudo,yytext);
+                                                conteudo[newSize-2]=' ';
+                                                conteudo[newSize-1]='\0';
+                                                BEGIN GETLINE;
+                                            }
+                                          else {yylval.s = strdup(conteudo);conteudo=strdup(yytext);conteudo[0]=' ';compare=s;BEGIN RTABS; return TXT;}}
+<GPONTO>\n/([a-zA-Z]+([0-9]|_)*)+  {yylval.s = strdup(conteudo);BEGIN INITIAL;return TXT;}
+<GPONTO><<EOF>> {yylval.s = strdup(conteudo);BEGIN INITIAL;return TXT;}                                      
+<GETLINE>[^\n]* {conteudo=realloc(conteudo,strlen(conteudo)+strlen(yytext));strcat(conteudo,yytext);BEGIN GPONTO;}
+<RTABS>[ ] {yylval.s=conteudo;BEGIN INITIAL;return TABS;}
                     
 
 %%
