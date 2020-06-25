@@ -13,4 +13,4 @@ install: $a
 	cp $a /usr/local/bin/
 
 clean:
-	rm -f lex.yy.c y.tab.*
+	rm -f lex.yy.c y.tab.* $a
