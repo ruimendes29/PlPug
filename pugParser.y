@@ -53,6 +53,14 @@ int writeSons(int i,int idxg,int ixg,int * lookForElse,Etiqueta * * ets)
         *lookForElse=1;
         j=writeSons(j,idxg,ixg,lookForElse,ets);
       }
+      else if (value==NULL || * value==0)
+      {
+        *lookForElse=2;
+        for(;j>=0;j--)
+        {
+          if (ets[j]->identacao <= ets[i]->identacao) break;
+        }
+      }
       else
       {
         for(;j>=0;j--)
@@ -63,11 +71,19 @@ int writeSons(int i,int idxg,int ixg,int * lookForElse,Etiqueta * * ets)
   }
   else if (!strcmp(ets[i]->nome,strdup("else")) && *lookForElse)
   {
-      for(;j>=0;j--)
+    if (*lookForElse==1)
+    {
+        for(;j>=0;j--)
         {
           if (ets[j]->identacao <= ets[i]->identacao) break;
         }
         *lookForElse=0;
+    }
+    else if (*lookForElse==2)
+    {
+        j=writeSons(j,idxg,ixg,lookForElse,ets);
+        *lookForElse=0;
+    }
   }
   else {
   j=i-1;
@@ -128,8 +144,8 @@ int writeSons(int i,int idxg,int ixg,int * lookForElse,Etiqueta * * ets)
 %%
 ToPrint: Pug {
   Etiquetas * grupo;
-         int j=0;
-       int * p = &j;   
+  int j=0;
+  int * p = &j;   
   for (int i=ig-1;i>=0;i--)
    {
      grupo=grupos[i];
@@ -224,7 +240,6 @@ Atribuicoes: VAR ATRIB Atributos {char ** variables;
                                   holderForVariables=malloc(sizeof(char *)*2048);
                                   holderForValues=malloc(sizeof(char *)*2048);
                               } 
-                              sprintf(aux,"%s=%s",strdup($1),strdup($2));
                               holderForVariables[ia]=strdup($1);
                               holderForValues[ia++]=strdup($2);
                               variables=holderForVariables;

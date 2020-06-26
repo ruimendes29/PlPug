@@ -37,7 +37,7 @@ if                      {yylval.s = strdup(yytext);BEGIN GCOND;return STR;}
 <VALUE>\=\"[^\"]*\"       {yylval.s=strdup(yytext+1);BEGIN INITIAL;return SVALUE;}
 <VALUE>\=true             {yylval.i=1;BEGIN INITIAL; return BOOL;}
 <VALUE>\=false            {yylval.i=0;BEGIN INITIAL; return BOOL;}
-<VALUE>\=[ ]*             {yylval.i=0;BEGIN INITIAL; return BOOL;}
+<VALUE>\=[ ]*             {yylval.i=1;BEGIN INITIAL; return BOOL;}
 <GCOND>[ ]+/[a-z][a-zA-Z0-9_]*[ ]*\n {BEGIN CONDIT;}
 <CONDIT>[a-z][a-zA-Z0-9_]* {yylval.s=strdup(yytext);BEGIN INITIAL;return COND;}                                   
 [\n]*                   {;}
