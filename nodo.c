@@ -50,8 +50,6 @@ void * getValorAndType(BD * bd,char * nome,char ** type)
      int c1,c2,c3;
     int tamanho = strlen(nome);
     void * r=NULL;
-    if (bd==NULL)
-        return r;
     if (tamanho < 2)
     {
         c2=0;
@@ -67,6 +65,10 @@ void * getValorAndType(BD * bd,char * nome,char ** type)
         c3=nome[2];
     }
     c1 = nome[0]%97;
+    if (bd==NULL || bd->variaveis[c1][c2][c3]==NULL)
+    {
+        return r;
+    }
     for(int i=0; i< bd->variaveis[c1][c2][c3]->tamanho;i++)
     {
         if (!strcmp(bd->variaveis[c1][c2][c3]->lista[i].nome,nome))
@@ -90,6 +92,7 @@ void * getValorAndType(BD * bd,char * nome,char ** type)
     char * type;
     void * valor = getValorAndType(mybd,strdup("i"),&type);
     void * valor2 = getValorAndType(mybd,strdup("e"),&type);
+    void * value = getValorAndType(mybd,strdup("abc"),&type);
     printf("VALOR = %d\n",* (int *) valor);
     printf("VALOR = %s\n",(char *) valor2);
     //addValor(mybd,strdup("varsdf"),strdup("value"),strdup("string"));

@@ -25,6 +25,7 @@ if                      {yylval.s = strdup(yytext);BEGIN GCOND;return STR;}
 <TEXT>\(                {BEGIN GA;} 
 <TEXT>[ ]+[^\n]*        {yylval.s=strdup(yytext); BEGIN INITIAL; return TXT;}
 <TEXT>[\n]+             {BEGIN INITIAL;}
+<TEXT>\=                {return TAGATRIB;}
 <GA>[^\=]+/\=            {yylval.s=strdup(yytext);BEGIN GV;return VAR;}
 <GV>\=[\'\"][^\'\"]*[\'\"] {yytext[1]=yytext[strlen(yytext)-1]='\"';
                           yylval.s=strdup(yytext+1);BEGIN GM;return ATRIB;}

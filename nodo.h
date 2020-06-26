@@ -16,6 +16,7 @@ typedef struct etiqueta
     int identacao;
     int hasPoint;
     char * condicao;
+    int atribuicaoTag;
 }Etiqueta;
 
 typedef struct etiquetas

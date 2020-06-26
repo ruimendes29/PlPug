@@ -38,22 +38,20 @@ for(int a=0;a<ets[i]->atributos->size;a++)
       }
     }
 }
-void writeNormalLine(int i,Etiqueta ** ets)
-{
 
-}
-
-int writeSons(int i,int idxg,int ixg,Etiqueta * * ets)
+int writeSons(int i,int idxg,int ixg,int * lookForElse,Etiqueta * * ets)
 {
   int j;
   j=i-1;
+ 
   if (!strcmp(ets[i]->nome,strdup("if")))
   {
       char ** type= malloc(sizeof(char *));
       int * value = getValorAndType(mybd,ets[i]->condicao,type);
       if (value!=NULL && *value==1)
       {
-        j=writeSons(j,idxg,ixg,ets);
+        *lookForElse=1;
+        j=writeSons(j,idxg,ixg,lookForElse,ets);
       }
       else
       {
@@ -61,11 +59,15 @@ int writeSons(int i,int idxg,int ixg,Etiqueta * * ets)
         {
           if (ets[j]->identacao <= ets[i]->identacao) break;
         }
-        if (!strcmp(ets[j]->nome,strdup("else")))
-        {
-          j--;
-        }
       }
+  }
+  else if (!strcmp(ets[i]->nome,strdup("else")) && *lookForElse)
+  {
+      for(;j>=0;j--)
+        {
+          if (ets[j]->identacao <= ets[i]->identacao) break;
+        }
+        *lookForElse=0;
   }
   else {
   j=i-1;
@@ -81,12 +83,20 @@ int writeSons(int i,int idxg,int ixg,Etiqueta * * ets)
       printf(" class=\"%s\"",ets[i]->classe);
     }
     printAtributos(i,ets);
-    printf(">%s",ets[i]->conteudo);
+    char * value="";
+    if (ets[i]->atribuicaoTag)
+    {
+      char ** type= malloc(sizeof(char *));
+      value = getValorAndType(mybd,strdup(ets[i]->conteudo + 1),type);
+      if (value==NULL) value="";
+    }
+    else value = ets[i]->conteudo;
+    printf(">%s",value);
     for (;j>=0;j--)
     {
       if (ets[j]->identacao > ets[i]->identacao)
       {
-              j = writeSons(j,idxg,ixg,ets)+1;
+              j = writeSons(j,idxg,ixg,lookForElse,ets)+1;
       }
       else break;
     }
@@ -109,20 +119,24 @@ int writeSons(int i,int idxg,int ixg,Etiqueta * * ets)
         void * e;
 	  }
 
-%token<i> BOOL
-%token <s> STR TABS TXT ID CLASS ATRIB PONTO NEW VAR SVALUE IF COND
+%token<i> BOOL TAGATRIB
+%token <s> STR TABS TXT ID CLASS ATRIB PONTO NEW VAR SVALUE COND
 %type <s> Conteudo Nome Id Classe Espacos Condicao
-%type <i> Ponto
+%type <i> Ponto AtribuicaoTag
 %type <e> Etiqueta SubEtiqueta Etiquetas Atribuicoes
 
 %%
 ToPrint: Pug {
-  Etiquetas * grupo;   
+  Etiquetas * grupo;
+         int j=0;
+       int * p = &j;   
   for (int i=ig-1;i>=0;i--)
    {
      grupo=grupos[i];
      for (int j=grupo->size-1;j>=0;j--)
-        j=writeSons(j,i,grupo->size-1,grupo->tags)+1;
+     {
+       j=writeSons(j,i,grupo->size-1,p,grupo->tags)+1;
+     }
    }
      }
 Pug:                
@@ -162,7 +176,7 @@ Etiquetas:Etiqueta Outros{
 Outros:  
       |  SubEtiqueta Outros {etiquetas[id++]=$1;}
       ;
-Etiqueta:Espacos Nome Id Classe Atribuicoes Ponto Conteudo Condicao{
+Etiqueta:Espacos Nome Id Classe Atribuicoes Ponto AtribuicaoTag Conteudo Condicao{
                                                            if (etiquetas==NULL)
                                                            {
                                                              etiquetas=malloc(sizeof(struct etiqueta *)*2048);
@@ -174,13 +188,14 @@ Etiqueta:Espacos Nome Id Classe Atribuicoes Ponto Conteudo Condicao{
                                                            eti->classe=strdup($4);
                                                            eti->atributos=$5;
                                                            eti->hasPoint=$6;
-                                                           eti->conteudo=strdup($7);
-                                                           eti->condicao=strdup($8);
+                                                           eti->conteudo=strdup($8);
+                                                           eti->condicao=strdup($9);
                                                            eti->identacao=strlen(eti->espacos);
+                                                           eti->atribuicaoTag=$7;
                                                            $$=eti;
                                                            }                                              
                                                            ;
-SubEtiqueta:TABS Nome Id Classe Atribuicoes Ponto Conteudo Condicao{
+SubEtiqueta:TABS Nome Id Classe Atribuicoes Ponto AtribuicaoTag Conteudo Condicao{
                                                            if (etiquetas==NULL)
                                                            {
                                                              etiquetas=malloc(sizeof(struct etiqueta *)*2048);
@@ -192,12 +207,16 @@ SubEtiqueta:TABS Nome Id Classe Atribuicoes Ponto Conteudo Condicao{
                                                            eti->classe=strdup($4);
                                                            eti->atributos=$5;
                                                            eti->hasPoint=$6;
-                                                           eti->conteudo=strdup($7);
-                                                           eti->condicao=strdup($8);
+                                                           eti->conteudo=strdup($8);
+                                                           eti->condicao=strdup($9);
                                                            eti->identacao=strlen(eti->espacos);
+                                                           eti->atribuicaoTag=$7;
                                                            $$=eti;
                                                            }
-                                                           ;                                                           
+                                                           ;
+AtribuicaoTag: TAGATRIB {$$=1;}
+             |  {$$=0;}
+             ;                                                                                                                     
 Atribuicoes: VAR ATRIB Atributos {char ** variables;
                                   char ** values;
                               if (holderForVariables==NULL)
